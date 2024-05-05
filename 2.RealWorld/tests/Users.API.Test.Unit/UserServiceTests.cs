@@ -1,3 +1,4 @@
+using Azure.Core;
 using FluentAssertions;
 using FluentValidation;
 using NSubstitute;
@@ -312,7 +313,7 @@ public class UserServiceTests
             Age = 34,
             DateOfBirth = new(1989, 09, 03)
         };
-        userRepository.GetByIdAsync(request.id).Returns(user);
+        userRepository.GetByIdAsync(updateUserDto.id).Returns(user);
 
         //Act
         var action = async () => await _sut.UpdateAsync(request);
@@ -326,7 +327,7 @@ public class UserServiceTests
     {
         //Arrange
         int userId = 1;
-        userRepository.GetByIdAsync(userId).ReturnsNull();
+        userRepository.GetByIdAsync(updateUserDto.id).ReturnsNull();
 
         //Act
 
@@ -376,6 +377,7 @@ public class UserServiceTests
             DateOfBirth = new(1989, 09, 03)
         };
         userRepository.GetByIdAsync(userId).Returns(user);
+        userRepository.NameIsExist(updateUserDto.Name).Returns(false);
         userRepository.UpdateByAsync(user).Returns(true);
 
         //Act
@@ -401,6 +403,16 @@ public class UserServiceTests
         //Arrange
         userRepository.NameIsExist(Arg.Any<string>()).Returns(true);
 
+        UpdateUserDto request = new(1, "", 0, new(2007, 01, 01));
+        User user = new()
+        {
+            Id = 1,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+        userRepository.GetByIdAsync(updateUserDto.id).Returns(user);
+
         //Act
         var action = async () => await _sut.UpdateAsync(updateUserDto);
 
@@ -412,8 +424,18 @@ public class UserServiceTests
     public async Task UpdateAsync_ShouldLogMessagesAndException_WhenExceptionIsThrown()
     {
         //Arrange
+        User user = new()
+        {
+            Id = 1,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
         var exception = new ArgumentException("Kullanýcý güncelleme esnasýnda bir hatayla karþýlaþýldý.");
+
         userRepository.UpdateByAsync(Arg.Any<User>()).Throws(exception);
+        userRepository.GetByIdAsync(updateUserDto.id).Returns(user);
+        userRepository.NameIsExist(updateUserDto.Name).Returns(false);
 
         //Act
         var action = async () => await _sut.UpdateAsync(updateUserDto);
@@ -422,5 +444,52 @@ public class UserServiceTests
 
         await action.Should()
             .ThrowAsync<ArgumentException>();
+
+        logger.Received(1).LogError(Arg.Is(exception), Arg.Is("Kullanýcý güncelleme esnasýnda bir hatayla karþýlaþýldý."));
     }
+
+    [Fact]
+    public void UpdateAsync_ShouldCreateUpdateUserDtoToUserObject()
+    {
+        //Arrange
+        User user = new()
+        {
+            Id = 1,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+
+        //Act
+        _sut.CreateUpdateUserObject(ref user, updateUserDto);
+
+        //Assert
+
+        user.Name.Should().Be(updateUserDto.Name);
+        user.Age.Should().Be(updateUserDto.Age);
+        user.DateOfBirth.Should().Be(updateUserDto.DateOfBirth);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldUpdateUser_WhenDetailsAreValidAndUnique()
+    {
+        //Arrange
+        User user = new()
+        {
+            Id = 1,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+        userRepository.GetByIdAsync(updateUserDto.id).Returns(user);
+        userRepository.NameIsExist(updateUserDto.Name).Returns(false);
+        userRepository.UpdateByAsync(user).Returns(true);
+
+        //Act
+        var result = await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+        result.Should().Be(true);
+    }
+
 }

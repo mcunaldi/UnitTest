@@ -127,11 +127,11 @@ public sealed class UserService(
             }
         }
 
-		user.Name = request.Name;
-		user.Age = request.Age;
-		user.DateOfBirth = request.DateOfBirth;
+		//user.Name = request.Name;
+		//user.Age = request.Age;
+		//user.DateOfBirth = request.DateOfBirth;
 
-		//CreateUpdateUserObject(ref user, request); //1
+		CreateUpdateUserObject(ref user, request); //1
 
 		logger.LogInformation("Kullanıcı Adı: {0} olan kullanıcı kaydı güncellenmeye başlandı.", request.Name);
 
@@ -154,12 +154,12 @@ public sealed class UserService(
         }
 	}
 
-	//private User CreateUpdateUserObject(ref User user, UpdateUserDto request) //1
-	//{
-	//	user.Name = request.Name;
-	//	user.Age = request.Age;
-	//	user.DateOfBirth = request.DateOfBirth;
+	public User CreateUpdateUserObject(ref User user, UpdateUserDto request) //1
+	{
+		user.Name = request.Name;
+		user.Age = request.Age;
+		user.DateOfBirth = request.DateOfBirth;
 
-	//	return user;
-	//}
+		return user;
+	}
 }
