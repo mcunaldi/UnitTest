@@ -301,10 +301,18 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_ShouldThrownAnError_WhenUserCreateDetailIsNotValid()
+    public async Task UpdateAsync_ShouldThrownAnError_WhenUserUpdateDetailIsNotValid()
     {
         //Arrange
         UpdateUserDto request = new(1, "", 0, new(2007, 01, 01));
+        User user = new()
+        {
+            Id = request.id,
+            Name = request.Name,
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+        userRepository.GetByIdAsync(request.id).Returns(user);
 
         //Act
         var action = async () => await _sut.UpdateAsync(request);

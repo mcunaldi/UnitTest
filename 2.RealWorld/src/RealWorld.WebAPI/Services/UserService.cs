@@ -105,33 +105,35 @@ public sealed class UserService(
 
 	public async Task<bool> UpdateAsync(UpdateUserDto request, CancellationToken cancellation = default)
 	{
-        UpdateUserDtoValidator validator = new();
-        var result = validator.Validate(request);
-        if (!result.IsValid)
-        {
-            throw new ValidationException(string.Join(", ", result.Errors.Select(s => s.ErrorMessage)));
-        }
-
         User? user = await userRepository.GetByIdAsync(request.id);
 		if (user is null)
 		{
 			throw new ArgumentException("Kullanıcı bulunamadı");
 		}
 
+        UpdateUserDtoValidator validator = new();
+        var result = validator.Validate(request);
+        if (!result.IsValid)
+        {
+            throw new ValidationException(string.Join("\n", result.Errors.Select(s => s.ErrorMessage)));
+        }
 
-		var nameIsExist = await userRepository.NameIsExist(request.Name, cancellation);
-		if (nameIsExist)
+		if(request.Name == user.Name)
 		{
-			throw new ArgumentException("Bu isim daha önce kaydedilmiş.");
-		}
+            var nameIsExist = await userRepository.NameIsExist(request.Name, cancellation);
+            if (nameIsExist)
+            {
+                throw new ArgumentException("Bu isim daha önce kaydedilmiş.");
+            }
+        }
 
 		user.Name = request.Name;
 		user.Age = request.Age;
 		user.DateOfBirth = request.DateOfBirth;
 
-		await userRepository.UpdateByAsync(user, cancellation);
+		//CreateUpdateUserObject(ref user, request); //1
 
-		logger.LogInformation("Kullanıcı Adı: {0} olan kullanıcı kaydı güncellenmeye başlandı.", user.Name);
+		logger.LogInformation("Kullanıcı Adı: {0} olan kullanıcı kaydı güncellenmeye başlandı.", request.Name);
 
 		var stopWatch = Stopwatch.StartNew();
 		try
@@ -151,4 +153,13 @@ public sealed class UserService(
             logger.LogInformation("Kullanıcı ID {0} olan kullanıcı kaydı {1} ms de güncellendi.", user.Id, stopWatch.ElapsedMilliseconds);
         }
 	}
+
+	//private User CreateUpdateUserObject(ref User user, UpdateUserDto request) //1
+	//{
+	//	user.Name = request.Name;
+	//	user.Age = request.Age;
+	//	user.DateOfBirth = request.DateOfBirth;
+
+	//	return user;
+	//}
 }
