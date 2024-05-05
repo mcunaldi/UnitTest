@@ -9,11 +9,11 @@ using System.Diagnostics;
 namespace RealWorld.WebAPI.Services;
 
 public sealed class UserService(
-    IUserRepository userRepository, ILoggerAdapter<UserService> logger) : IUserService
+	IUserRepository userRepository, ILoggerAdapter<UserService> logger) : IUserService
 {
-    public async Task<List<User>> GetAllAsync(CancellationToken cancellation = default)
-    {
-        logger.LogInformation("Tüm userlar getiriliyor.");
+	public async Task<List<User>> GetAllAsync(CancellationToken cancellation = default)
+	{
+		logger.LogInformation("Tüm userlar getiriliyor.");
 		try
 		{
 			return await userRepository.GetAllAsync(cancellation);
@@ -28,21 +28,21 @@ public sealed class UserService(
 		{
 			logger.LogInformation("Tüm user listesi çekildi");
 		}
-    }
-    public async Task<bool> CreateAsync(CreateUserDto request,CancellationToken cancellation = default)
+	}
+	public async Task<bool> CreateAsync(CreateUserDto request, CancellationToken cancellation = default)
 	{
 		CreateUserDtoValidator validator = new();
 		var result = validator.Validate(request);
-		if(!result.IsValid)
+		if (!result.IsValid)
 		{
 			throw new ValidationException(string.Join(", ", result.Errors.Select(s => s.ErrorMessage)));
 		}
 
 		var nameIsExist = await userRepository.NameIsExist(request.Name, cancellation);
-        if (nameIsExist)
-        {
+		if (nameIsExist)
+		{
 			throw new ArgumentException("Bu isim daha önce kaydedilmiş.");
-        }
+		}
 
 		var user = CreateUserDtoToUserObject(request);
 
@@ -52,8 +52,8 @@ public sealed class UserService(
 		try
 		{
 
-            return await userRepository.CreateAsync(user, cancellation);
-        }
+			return await userRepository.CreateAsync(user, cancellation);
+		}
 		catch (Exception ex)
 		{
 
@@ -65,22 +65,22 @@ public sealed class UserService(
 			stopWatch.Stop();
 			logger.LogInformation("User ID: {} olan kullanıcı {1} ms'de oluşturuldu.", user.Id, stopWatch.ElapsedMilliseconds);
 		}
-    }
+	}
 
-    public User CreateUserDtoToUserObject(CreateUserDto request)
-    {
+	public User CreateUserDtoToUserObject(CreateUserDto request)
+	{
 		return new User()
 		{
 			Name = request.Name,
 			DateOfBirth = request.DateOfBirth,
 			Age = request.Age
 		};
-    }
+	}
 
-    public async Task<bool> DeleteByIdAsync(int id, CancellationToken cancellation = default)
-    {
+	public async Task<bool> DeleteByIdAsync(int id, CancellationToken cancellation = default)
+	{
 		User user = await userRepository.GetByIdAsync(id, cancellation);
-		if(user is null)
+		if (user is null)
 		{
 			throw new ArgumentException("Kullanıcı bulunamadı.");
 		}
@@ -101,5 +101,54 @@ public sealed class UserService(
 			stopWatch.Stop();
 			logger.LogInformation("Kullanıcı ID {0} olan kullanıcı kaydı {1} ms de silindi.", user.Id, stopWatch.ElapsedMilliseconds);
 		}
-    }
+	}
+
+	public async Task<bool> UpdateAsync(UpdateUserDto request, CancellationToken cancellation = default)
+	{
+        UpdateUserDtoValidator validator = new();
+        var result = validator.Validate(request);
+        if (!result.IsValid)
+        {
+            throw new ValidationException(string.Join(", ", result.Errors.Select(s => s.ErrorMessage)));
+        }
+
+        User? user = await userRepository.GetByIdAsync(request.id);
+		if (user is null)
+		{
+			throw new ArgumentException("Kullanıcı bulunamadı");
+		}
+
+
+		var nameIsExist = await userRepository.NameIsExist(request.Name, cancellation);
+		if (nameIsExist)
+		{
+			throw new ArgumentException("Bu isim daha önce kaydedilmiş.");
+		}
+
+		user.Name = request.Name;
+		user.Age = request.Age;
+		user.DateOfBirth = request.DateOfBirth;
+
+		await userRepository.UpdateByAsync(user, cancellation);
+
+		logger.LogInformation("Kullanıcı Adı: {0} olan kullanıcı kaydı güncellenmeye başlandı.", user.Name);
+
+		var stopWatch = Stopwatch.StartNew();
+		try
+		{
+
+			return await userRepository.UpdateByAsync(user, cancellation);
+		}
+		catch (Exception ex)
+		{
+
+			logger.LogError(ex, "Kullanıcı güncelleme esnasında bir hatayla karşılaşıldı.");
+			throw;
+		}
+		finally
+        {
+            stopWatch.Stop();
+            logger.LogInformation("Kullanıcı ID {0} olan kullanıcı kaydı {1} ms de güncellendi.", user.Id, stopWatch.ElapsedMilliseconds);
+        }
+	}
 }

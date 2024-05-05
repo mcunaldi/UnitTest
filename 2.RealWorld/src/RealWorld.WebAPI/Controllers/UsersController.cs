@@ -38,4 +38,18 @@ public class UsersController(IUserService userService) : ControllerBase
 
         return BadRequest(new { Message = "Kullanıcı silerken bir hatayla karşılaştık." });
     }
+
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateAsync(UpdateUserDto request, CancellationToken cancellation)
+    {
+        var result = await userService.UpdateAsync(request, cancellation);
+        if (result)
+        {
+            return Ok(new { Message = "Kullanıcı güncelleme başarılı" });
+        }
+
+
+        return BadRequest(new { Message = "Kullanıcı güncelleme sırasında bir hatayla karşılaşıldı." });
+    }
 }

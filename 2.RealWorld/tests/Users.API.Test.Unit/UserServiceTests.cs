@@ -14,10 +14,11 @@ namespace Users.API.Test.Unit;
 public class UserServiceTests
 {
     private readonly UserService _sut;
-    private readonly IUserRepository userRepository = Substitute.For<IUserRepository>();   
+    private readonly IUserRepository userRepository = Substitute.For<IUserRepository>();
     private readonly ILoggerAdapter<UserService> logger = Substitute.For<ILoggerAdapter<UserService>>();
 
     private readonly CreateUserDto createUserDto = new CreateUserDto("Taner Saydam", 34, new DateOnly(1989, 09, 03));
+    private readonly UpdateUserDto updateUserDto = new UpdateUserDto(1, "Taner Saydam", 34, new DateOnly(1989, 09, 03));
 
     public UserServiceTests()
     {
@@ -74,7 +75,7 @@ public class UserServiceTests
     public async Task GetAllAsync_ShouldLogMessages_WhenInvoked()
     {
         //Arrange
-        userRepository.GetAllAsync().Returns(Enumerable.Empty<User>().ToList() );
+        userRepository.GetAllAsync().Returns(Enumerable.Empty<User>().ToList());
 
         //Act
 
@@ -95,7 +96,7 @@ public class UserServiceTests
 
         //Act
         var requestAction = async () => await _sut.GetAllAsync();
-        
+
         await requestAction.Should()
             .ThrowAsync<ArgumentException>();
 
@@ -108,7 +109,7 @@ public class UserServiceTests
     public async Task CreateAsync_ShouldThrownAnError_WhenUserCreateDetailIsNotValid()
     {
         //Arrange
-        CreateUserDto request = new("", 0, new(2007,01,01));
+        CreateUserDto request = new("", 0, new(2007, 01, 01));
 
         //Act
         var action = async () => await _sut.CreateAsync(request);
@@ -184,7 +185,7 @@ public class UserServiceTests
     {
         //Arrange
         var exception = new ArgumentException("Kullanýcý kaydý esnasýnda bir hatayla karþýlaþýldý.");
-        userRepository.CreateAsync(Arg.Any<User>()).Throws(exception);  
+        userRepository.CreateAsync(Arg.Any<User>()).Throws(exception);
 
         //Act
         var action = async () => await _sut.CreateAsync(createUserDto);
@@ -194,7 +195,7 @@ public class UserServiceTests
         await action.Should()
             .ThrowAsync<ArgumentException>();
 
-        logger.Received(1).LogError(Arg.Is(exception) ,Arg.Is("Kullanýcý kaydý esnasýnda bir hatayla karþýlaþýldý."));
+        logger.Received(1).LogError(Arg.Is(exception), Arg.Is("Kullanýcý kaydý esnasýnda bir hatayla karþýlaþýldý."));
     }
 
     [Fact]
@@ -224,7 +225,7 @@ public class UserServiceTests
             Id = userId,
             Name = "Taner Saydam",
             Age = 34,
-            DateOfBirth = new (1989, 09, 03)
+            DateOfBirth = new(1989, 09, 03)
         };
         userRepository.GetByIdAsync(userId).Returns(user);
         userRepository.DeleteByAsync(user).Returns(true);
@@ -297,5 +298,121 @@ public class UserServiceTests
         await action.Should().ThrowAsync<ArgumentException>();
 
         logger.Received(1).LogError(Arg.Is(exception), Arg.Is("Kullanýcý kaydý silinirken bir hatayla karþýlaþýldý."));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrownAnError_WhenUserCreateDetailIsNotValid()
+    {
+        //Arrange
+        UpdateUserDto request = new(1, "", 0, new(2007, 01, 01));
+
+        //Act
+        var action = async () => await _sut.UpdateAsync(request);
+
+        //Assert
+        await action.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrownAnError_WhenUserNotExist()
+    {
+        //Arrange
+        int userId = 1;
+        userRepository.GetByIdAsync(userId).ReturnsNull();
+
+        //Act
+
+        var action = async () => await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+
+        await action.Should().ThrowAsync<ArgumentException>();
+
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldDeleteUser_WhenUserExist()
+    {
+        //Arrange
+        int userId = 1;
+        User user = new()
+        {
+            Id = userId,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+        userRepository.GetByIdAsync(userId).Returns(user);
+        userRepository.UpdateByAsync(user).Returns(true);
+
+        //Act
+
+        var result = await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+
+        result.Should().BeTrue();
+
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldLogMessages_WhenInvoked()
+    {
+        //Arrange
+        int userId = 1;
+        User user = new()
+        {
+            Id = userId,
+            Name = "Taner Saydam",
+            Age = 34,
+            DateOfBirth = new(1989, 09, 03)
+        };
+        userRepository.GetByIdAsync(userId).Returns(user);
+        userRepository.UpdateByAsync(user).Returns(true);
+
+        //Act
+
+        await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+
+        logger.Received(1).LogInformation(
+            Arg.Is("Kullanýcý Adý: {0} olan kullanýcý kaydý güncellenmeye baþlandý."),
+            Arg.Is(user.Name));
+
+        logger.Received(1).LogInformation(
+            Arg.Is("Kullanýcý ID {0} olan kullanýcý kaydý {1} ms de güncellendi."),
+            Arg.Is(userId),
+            Arg.Any<long>());
+
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrownAnError_WhenUserNameExist()
+    {
+        //Arrange
+        userRepository.NameIsExist(Arg.Any<string>()).Returns(true);
+
+        //Act
+        var action = async () => await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+        await action.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldLogMessagesAndException_WhenExceptionIsThrown()
+    {
+        //Arrange
+        var exception = new ArgumentException("Kullanýcý güncelleme esnasýnda bir hatayla karþýlaþýldý.");
+        userRepository.UpdateByAsync(Arg.Any<User>()).Throws(exception);
+
+        //Act
+        var action = async () => await _sut.UpdateAsync(updateUserDto);
+
+        //Assert
+
+        await action.Should()
+            .ThrowAsync<ArgumentException>();
     }
 }
