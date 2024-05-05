@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options=>
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddTransient(typeof(ILoggerAdaptor<>), typeof(LoggerAdaptor<>));
+builder.Services.AddTransient(typeof(ILoggerAdapter<>), typeof(LoggerAdapter<>));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

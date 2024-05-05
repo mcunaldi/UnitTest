@@ -1,14 +1,14 @@
 ﻿namespace RealWorld.WebAPI.Logging;
 
-public interface ILoggerAdaptor<TType>
+public interface ILoggerAdapter<TType>
 {
     void LogInformation(string? message, params object?[] args);
     void LogError(Exception? exception, string? message, params object?[] args);
 }
 
 
-public sealed class LoggerAdaptor<TType>(
-    ILogger<TType> logger) : ILoggerAdaptor<TType>
+public sealed class LoggerAdapter<TType>(
+    ILogger<TType> logger) : ILoggerAdapter<TType>
 {
     public void LogError(Exception? exception, string? message, params object?[] args)
     {
